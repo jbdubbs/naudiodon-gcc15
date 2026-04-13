@@ -49,6 +49,7 @@ public:
   bool getErrStr(std::string& errStr, bool isInput);
 
   void quit();
+  void forceStop(); // non-blocking abort for use from env cleanup hook
 
   bool readPaBuffer(const void *srcBuf, uint32_t frameCount, double inTimestamp);
   bool fillPaBuffer(void *dstBuf, uint32_t frameCount);

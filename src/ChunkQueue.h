@@ -59,10 +59,7 @@ public:
   void quit() {
     std::lock_guard<std::mutex> lk(m);
     mActive = false;
-    if ((0 == qu.size()) || (qu.size() >= mMaxQueue)) {
-      // ensure release of any blocked thread
-      cv.notify_all();
-    }
+    cv.notify_all(); // always wake blocked threads; dequeue() checks mActive
   }
 
 private:

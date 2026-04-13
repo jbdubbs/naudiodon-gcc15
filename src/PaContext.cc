@@ -119,11 +119,23 @@ void PaContext::start(napi_env env) {
 }
 
 void PaContext::stop(eStopFlag flag) {
+  if (!mStream) return;
   if (eStopFlag::ABORT == flag)
     Pa_AbortStream(mStream);
   else
     Pa_StopStream(mStream);
   Pa_CloseStream(mStream);
+  mStream = nullptr;
+  Pa_Terminate();
+}
+
+void PaContext::forceStop() {
+  if (!mStream) return;
+  if (mInOptions) mInChunks->quit();
+  if (mOutOptions) mOutChunks->quit();
+  Pa_AbortStream(mStream);
+  Pa_CloseStream(mStream);
+  mStream = nullptr;
   Pa_Terminate();
 }
 

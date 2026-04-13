@@ -20,6 +20,14 @@
 
 namespace streampunk {
 
+// Cleanup hook registered when a stream is started. Fires during Node.js
+// environment teardown if the stream was never explicitly quit(). Calls
+// Pa_AbortStream to unblock any waiting worker threads before the env dies.
+static void paContextEnvCleanupHook(void* arg) {
+  PaContext* ctx = static_cast<PaContext*>(arg);
+  ctx->forceStop();
+}
+
 napi_ref AudioIO::constructorRef;
 
 AudioIO::AudioIO(napi_env env, napi_callback_info info): mInstanceRef(nullptr) {
@@ -146,6 +154,7 @@ napi_value AudioIO::Start(napi_env env, napi_callback_info info) {
   napi_value result;
 
   mPaContext->start(env);
+  napi_add_env_cleanup_hook(env, paContextEnvCleanupHook, mPaContext.get());
 
   status = napi_get_undefined(env, &result);
   CHECK_STATUS;
@@ -163,6 +172,11 @@ void readComplete(napi_env env, napi_status asyncStatus, void* data) {
   napi_value result, buffer, ts, finInt, finished, err;
   std::string errStr;
   void* bufferData;
+
+  if (asyncStatus == napi_closing || asyncStatus == napi_cancelled) {
+    delete c; // env is tearing down; skip all N-API calls
+    return;
+  }
 
   if (asyncStatus != napi_ok) {
     c->status = asyncStatus;
@@ -251,6 +265,11 @@ void writeComplete(napi_env env, napi_status asyncStatus, void* data) {
   napi_value result;
   std::string errStr;
 
+  if (asyncStatus == napi_closing || asyncStatus == napi_cancelled) {
+    delete c; // env is tearing down; skip all N-API calls
+    return;
+  }
+
   if (asyncStatus != napi_ok) {
     c->status = asyncStatus;
     c->errorMsg = "Async write failed to complete";
@@ -319,6 +338,14 @@ void quitExecute(napi_env env, void* data) {
 void quitComplete(napi_env env, napi_status asyncStatus, void* data) {
   asyncCarrier* c = (asyncCarrier*) data;
   napi_value result;
+
+  if (asyncStatus == napi_closing || asyncStatus == napi_cancelled) {
+    delete c; // env is tearing down; skip all N-API calls
+    return;
+  }
+
+  // Normal quit completed; deregister the cleanup hook since stop() already ran
+  napi_remove_env_cleanup_hook(env, paContextEnvCleanupHook, c->mPaContext.get());
 
   c->status = napi_get_undefined(env, &result);
   REJECT_STATUS;

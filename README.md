@@ -5,6 +5,7 @@
 * Remove dep on segfault-handler
 * Explicit include string as required by GCC 15+
 * Fix handling of app exiting before closing any active streams
+* Tested on Fedora 43
 
 A [Node.js](http://nodejs.org/) [addon](http://nodejs.org/api/addons.html) that provides a wrapper around the [PortAudio](http://portaudio.com/) library, enabling an application to record and play audio with cross platform support. With this library, you can create [node.js streams](https://nodejs.org/dist/latest-v6.x/docs/api/stream.html) that can be piped to or from other streams, such as files and network connections. This library supports back-pressure.
 

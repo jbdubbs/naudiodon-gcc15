@@ -1,11 +1,29 @@
 # Naudiodon
 
-## Fork by Jason Weisberger (NT0Y) to remove dependency on segfault-handler and improve compat with GCC 15+.
+## Fork by Jason Weisberger (NT0Y) — GCC 15+ compatibility and clean shutdown fixes
 
-* Remove dep on segfault-handler
-* Explicit include string as required by GCC 15+
-* Fix handling of app exiting before closing any active streams
+* Remove dependency on `segfault-handler`
+* Add explicit `#include <string>` required by GCC 15+
+* Fix handling of app exiting before closing any active streams (env cleanup hook calls `Pa_AbortStream`)
+* Fix hang on process exit when using ALSA/PulseAudio backend (see below)
 * Tested on Fedora 43
+
+### ALSA/PulseAudio shutdown fix
+
+On Linux with PulseAudio acting as the ALSA backend, calling `Pa_StopStream` or
+`Pa_AbortStream` can block indefinitely during application shutdown. Both functions
+internally call `pthread_join` to wait for the PortAudio audio processing thread to
+finish. When the PulseAudio connection stalls (for example, during Electron window
+teardown), the audio thread is stuck in a blocking PulseAudio call and `pthread_join`
+never returns. Because this work runs on a libuv thread pool thread, Node.js cannot
+drain its event loop and the process hangs.
+
+**Fix:** `PaContext::stop()` now detaches all PA teardown (`Pa_AbortStream`,
+`Pa_CloseStream`, `Pa_Terminate`) to a background `std::thread`. The background
+thread is invisible to libuv, so the event loop drains and the process exits cleanly.
+If the audio thread is genuinely stuck, the OS reaps it when the process terminates.
+`quitExecute` always passes `ABORT` to `stop()` since `quit()` has already drained
+all data paths before `stop()` is called.
 
 A [Node.js](http://nodejs.org/) [addon](http://nodejs.org/api/addons.html) that provides a wrapper around the [PortAudio](http://portaudio.com/) library, enabling an application to record and play audio with cross platform support. With this library, you can create [node.js streams](https://nodejs.org/dist/latest-v6.x/docs/api/stream.html) that can be piped to or from other streams, such as files and network connections. This library supports back-pressure.
 

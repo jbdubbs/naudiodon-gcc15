@@ -332,7 +332,12 @@ napi_value AudioIO::Write(napi_env env, napi_callback_info info) {
 void quitExecute(napi_env env, void* data) {
   asyncCarrier* c = (asyncCarrier*) data;
   c->mPaContext->quit();
-  c->mPaContext->stop(c->mStopFlag);
+  // Always use ABORT after quit() has signalled all data paths to stop.
+  // Pa_StopStream(WAIT) calls snd_pcm_drain() on ALSA/PulseAudio which blocks
+  // indefinitely when the PulseAudio connection stalls (e.g. during Electron
+  // shutdown). Pa_AbortStream is equally blocked by pthread_join in that case,
+  // so stop() detaches the PA teardown to a background thread — see PaContext.cc.
+  c->mPaContext->stop(PaContext::eStopFlag::ABORT);
 }
 
 void quitComplete(napi_env env, napi_status asyncStatus, void* data) {

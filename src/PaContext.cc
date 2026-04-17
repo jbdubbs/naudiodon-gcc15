@@ -120,13 +120,20 @@ void PaContext::start(napi_env env) {
 
 void PaContext::stop(eStopFlag flag) {
   if (!mStream) return;
-  if (eStopFlag::ABORT == flag)
-    Pa_AbortStream(mStream);
-  else
-    Pa_StopStream(mStream);
-  Pa_CloseStream(mStream);
+
+  // Pa_AbortStream and Pa_StopStream both call pthread_join on the ALSA/PulseAudio
+  // backend. When the PulseAudio connection stalls (e.g. during Electron shutdown),
+  // the audio thread is blocked in a PulseAudio call and pthread_join waits forever.
+  // Detaching the teardown to a background thread keeps it invisible to libuv so
+  // Node.js can drain its event loop and exit cleanly. The OS reaps any stuck
+  // threads when the process terminates.
+  PaStream* streamToStop = mStream;
   mStream = nullptr;
-  Pa_Terminate();
+  std::thread([streamToStop]() {
+    Pa_AbortStream(streamToStop);
+    Pa_CloseStream(streamToStop);
+    Pa_Terminate();
+  }).detach();
 }
 
 void PaContext::forceStop() {

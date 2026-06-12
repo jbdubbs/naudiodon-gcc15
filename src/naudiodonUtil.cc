@@ -20,6 +20,10 @@
 #include <string>
 #include "naudiodonUtil.h"
 #include "node_api.h"
+#ifdef __linux__
+#include <dlfcn.h>
+#include <cstdarg>
+#endif
 
 napi_status checkStatus(napi_env env, napi_status status,
   const char* file, uint32_t line) {
@@ -313,3 +317,28 @@ napi_status naud_delete_named_property(napi_env env, napi_value props, const cha
 
   return napi_ok;
 }
+
+#ifdef __linux__
+typedef void (*alsa_handler_t)(const char*, int, const char*, int, const char*, ...);
+typedef int (*alsa_setter_t)(alsa_handler_t);
+
+static void alsa_error_handler(const char *file, int line, const char *function, int err, const char *fmt, ...) {
+  if (!getenv("NAUDIODON_DEBUG")) return;
+  char buf[512];
+  va_list args;
+  va_start(args, fmt);
+  vsnprintf(buf, sizeof(buf), fmt, args);
+  va_end(args);
+  fprintf(stderr, "ALSA lib %s:%i:(%s) %s\n", file, line, function, buf);
+}
+
+void set_alsa_error_handler() {
+  void* lib = dlopen("libasound.so.2", RTLD_LAZY | RTLD_NOLOAD);
+  if (!lib) return;
+  alsa_setter_t setter = (alsa_setter_t)dlsym(lib, "snd_lib_error_set_handler");
+  if (setter) setter(alsa_error_handler);
+  dlclose(lib);
+}
+#else
+void set_alsa_error_handler() {}
+#endif

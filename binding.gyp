@@ -82,7 +82,8 @@
                 ],
                 "link_settings": {
                   "libraries": [
-                    "<@(module_root_dir)/build/Release/libportaudio.so.2" 
+                    "<@(module_root_dir)/build/Release/libportaudio.so.2",
+                    "-ldl"
                   ],
                   "ldflags": [
                     "-L<@(module_root_dir)/build/Release",
@@ -109,7 +110,8 @@
                  ],
                 "link_settings": {
                   "libraries": [
-                    "<@(module_root_dir)/build/Release/libportaudio.so.2"
+                    "<@(module_root_dir)/build/Release/libportaudio.so.2",
+                    "-ldl"
                   ],
                   "ldflags": [
                   "-L<@(module_root_dir)/build/Release",

@@ -90,10 +90,4 @@ napi_status naud_set_null(napi_env env, napi_value target, const char* name);
 napi_status naud_is_null(napi_env env, napi_value props, const char* name, bool* isNull);
 napi_status naud_delete_named_property(napi_env env, napi_value props, const char* name, bool* deleted);
 
-// Install a custom ALSA error handler that gates output on the NAUDIODON_DEBUG
-// env var. Must be called before Pa_Initialize() on Linux to suppress the
-// normal device-probing noise (dsnoop, dmix, missing virtual PCM devices).
-// No-op on non-Linux platforms.
-void set_alsa_error_handler();
-
 #endif // BEAMCODER_UTIL_H

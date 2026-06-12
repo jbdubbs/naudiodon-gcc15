@@ -16,7 +16,6 @@
 #include "PaContext.h"
 #include "Params.h"
 #include "Chunks.h"
-#include "naudiodonUtil.h"
 #include <portaudio.h>
 #include <thread>
 
@@ -44,7 +43,6 @@ PaContext::PaContext(napi_env env, napi_value inOptions, napi_value outOptions)
     mOutChunks(new Chunks(mOutOptions ? mOutOptions->maxQueue() : 0)),
     mStream(nullptr) {
 
-  set_alsa_error_handler();
   PaError errCode = Pa_Initialize();
   if (errCode != paNoError) {
     std::string err = std::string("Could not initialize PortAudio: ") + Pa_GetErrorText(errCode);

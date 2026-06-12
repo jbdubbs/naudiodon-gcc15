@@ -333,14 +333,11 @@ static void alsa_error_handler(const char *file, int line, const char *function,
 }
 
 void set_alsa_error_handler() {
-  // Load libasound explicitly (not RTLD_NOLOAD) because PortAudio hasn't yet
-  // dlopen'd the ALSA backend at this point — it does so inside Pa_Initialize().
-  // We intentionally skip dlclose so libasound stays mapped and our handler
-  // function pointer (which lives in naudiodon.node) is never invalidated.
-  void* lib = dlopen("libasound.so.2", RTLD_LAZY);
+  void* lib = dlopen("libasound.so.2", RTLD_LAZY | RTLD_NOLOAD);
   if (!lib) return;
   alsa_setter_t setter = (alsa_setter_t)dlsym(lib, "snd_lib_error_set_handler");
   if (setter) setter(alsa_error_handler);
+  dlclose(lib);
 }
 #else
 void set_alsa_error_handler() {}

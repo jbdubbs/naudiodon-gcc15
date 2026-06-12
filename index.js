@@ -42,8 +42,11 @@ function AudioIO(options) {
   };
 
   const doWrite = async (chunk, encoding, cb) => {
-    const err = await audioIOAdon.write(chunk);
-    cb(err);
+    const status = await audioIOAdon.write(chunk);
+    if (status) {
+      ioStream.emit('pa-status', status);
+    }
+    cb();
   }
 
   const readable = 'inOptions' in options;
@@ -96,7 +99,7 @@ function AudioIO(options) {
     ioStream.emit('finished');
   });
 
-  ioStream.on('error', err => console.error('AudioIO:', err));
+  ioStream.on('error', () => {});
 
   return ioStream;
 }

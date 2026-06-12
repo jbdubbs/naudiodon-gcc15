@@ -61,11 +61,6 @@ PaContext::PaContext(napi_env env, napi_value inOptions, napi_value outOptions)
     return;
   }    
 
-  printf("%s\n", Pa_GetVersionInfo()->versionText);
-  if (mInOptions)
-    printf("Input %s\n", mInOptions->toString().c_str());
-  if (mOutOptions)
-    printf("Output %s\n", mOutOptions->toString().c_str());
 
   double sampleRate;
   PaStreamParameters inParams;
@@ -189,11 +184,7 @@ void PaContext::checkStatus(uint32_t statusFlags) {
 
 bool PaContext::getErrStr(std::string& errStr, bool isInput) {
   std::lock_guard<std::mutex> lk(m);
-  std::shared_ptr<AudioOptions> options = isInput ? mInOptions : mOutOptions;
-  if (options->closeOnError()) // propagate the error back to the stream handler
-    errStr = mErrStr;
-  else if (mErrStr.length())
-    printf("AudioIO: %s\n", mErrStr.c_str());
+  errStr = mErrStr;
   mErrStr.clear();
   return !errStr.empty();
 }
@@ -239,7 +230,6 @@ uint32_t PaContext::fillBuffer(uint8_t *buf, uint32_t numBytes, double &timeStam
     if (!chunks->curBuf() || (chunks->curBuf() && (chunks->curBytes() == chunks->curOffset()))) {
       chunks->waitNext();
       if (!chunks->curBuf()) {
-        printf("Finishing %s - %d bytes not available to fill the last buffer\n", isInput ? "input" : "output", numBytes);
         memset(buf + bufOff, 0, numBytes);
         finished = true;
         break;
@@ -276,7 +266,6 @@ void PaContext::setParams(napi_env env, bool isInput,
     return;
   }  
 
-  printf("%s device name is %s\n", isInput?"Input":"Output", Pa_GetDeviceInfo(params.device)->name);
 
   params.channelCount = options->channelCount();
   int maxChannels = isInput ? Pa_GetDeviceInfo(params.device)->maxInputChannels : Pa_GetDeviceInfo(params.device)->maxOutputChannels;

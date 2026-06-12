@@ -23,7 +23,6 @@ napi_value getHostAPIs(napi_env env, napi_callback_info info) {
   napi_status status;
   napi_value result, hostApiArr, hostInfo;
 
-  set_alsa_error_handler();
   PaError errCode = Pa_Initialize();
   if (errCode != paNoError)
     NAPI_THROW_ERROR((std::string("Could not initialize PortAudio: ") + Pa_GetErrorText(errCode)).c_str());

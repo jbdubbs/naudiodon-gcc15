@@ -1,0 +1,31 @@
+diff --git a/src/common/pa_front.c b/src/common/pa_front.c
+index 00fdf41..febdc03 100644
+--- a/src/common/pa_front.c
++++ b/src/common/pa_front.c
+@@ -223,7 +223,25 @@ static PaError InitializeHostApis( void )
+ 
+         result = paHostApiInitializers[i]( &hostApis_[hostApisCount_], hostApisCount_ );
+         if( result != paNoError )
+-            goto error;
++        {
++            /* One host API failing to initialize (eg. PulseAudio being
++             * unreachable in a minimal/containerized environment that only
++             * exposes raw ALSA device nodes) must not take every other host
++             * API down with it - skip it and keep going. This mirrors the
++             * per-device "ignore what we can't determine" philosophy each
++             * host API backend already applies internally (see
++             * pa_linux_alsa.c's FillInDevInfo/GropeDevice handling), just
++             * one level up. Each host API's own Initialize() is responsible
++             * for cleaning up its own partial allocations before returning
++             * an error (eg. PaAlsa_Initialize's "error:" label), so no
++             * additional cleanup is needed here.
++             */
++            PA_DEBUG(( "paHostApiInitializers[%d] failed with error %d (%s), skipping this host API.\n",
++                    i, result, Pa_GetErrorText( result ) ));
++            hostApis_[hostApisCount_] = NULL;
++            result = paNoError;
++            continue;
++        }
+ 
+         PA_DEBUG(( "after paHostApiInitializers[%d].\n",i));
+ 

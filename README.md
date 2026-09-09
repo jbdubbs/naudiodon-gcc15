@@ -6,7 +6,26 @@
 * Add explicit `#include <string>` required by GCC 15+
 * Fix handling of app exiting before closing any active streams (env cleanup hook calls `Pa_AbortStream`)
 * Fix hang on process exit when using ALSA/PulseAudio backend (see below)
+* Fix `getDevices()`/`getHostAPIs()` returning zero devices when any single host API (eg. PulseAudio) fails to initialize (see "One failing host API taking down all of them" below)
 * Tested on Fedora 43
+
+### One failing host API taking down all of them
+
+Since PulseAudio host API support was added (for PipeWire device-routing
+convenience alongside ALSA), running in a minimal/containerized environment
+with raw ALSA device nodes but no reachable PulseAudio/PipeWire socket (eg.
+a headless Docker deployment bind-mounting only `/dev/snd`) made
+`getDevices()`/`getHostAPIs()` throw `"Could not initialize PortAudio:
+Unanticipated host error"` and return **no devices at all** — even real,
+fully-usable ALSA hardware that would enumerate fine on its own.
+
+**Fix:** patched PortAudio's `InitializeHostApis()` (`src/common/pa_front.c`)
+so a single host API failing to initialize is logged and skipped rather than
+aborting every other host API too — see
+[`patches/portaudio/README.md`](patches/portaudio/README.md) for the full
+root-cause writeup, the patch itself, and how it was verified. Applied to
+the Linux x64 `libportaudio.so.2` in this release; arm64/armhf/Windows/macOS
+binaries still need the same patch applied next time they're rebuilt.
 
 ### ALSA/PulseAudio shutdown fix
 

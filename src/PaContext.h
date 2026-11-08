@@ -39,6 +39,10 @@ public:
   bool hasInput() { return mInOptions ? true : false; }
   bool hasOutput() { return mOutOptions ? true : false; }
 
+  // The closeOnError option of the input (isInput) or output stream half.
+  // Defaults to true when that half isn't configured.
+  bool closeOnError(bool isInput) const;
+
   void start(napi_env env);
   void stop(eStopFlag flag);
 

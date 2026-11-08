@@ -203,6 +203,12 @@ There is an additional `"timestamp"` property available on the buffers that are 
 ai.on('data', buf => console.log(buf.timestamp));
 ```
 
+With `closeOnError: false`, a PortAudio status flag on the input (for example `input overflow`) no longer destroys the stream. The audio chunk is still delivered and the status string is emitted as a `pa-status` event instead (the same event output streams already emit):
+```javascript
+ai.on('pa-status', status => console.warn(status));
+```
+With the default `closeOnError: true`, the first status flag destroys the stream with that status as the error.
+
 To stop the recording, call `ai.quit()`. For example:
 
 ```javascript

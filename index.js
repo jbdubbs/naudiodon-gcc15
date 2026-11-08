@@ -34,6 +34,9 @@ function AudioIO(options) {
     if (result.err)
       ioStream.destroy(result.err);
     else {
+      // Only present when the input was opened with closeOnError: false.
+      if (result.status)
+        ioStream.emit('pa-status', result.status);
       if (result.finished)
         ioStream.push(null);
       else

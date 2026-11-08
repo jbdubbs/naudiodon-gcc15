@@ -186,7 +186,12 @@ void readComplete(napi_env env, napi_status asyncStatus, void* data) {
 
   c->status = napi_create_object(env, &result);
   REJECT_STATUS;
-  if (c->mPaContext->getErrStr(errStr, /*isInput*/true)) {
+  // A PortAudio status flag (e.g. input overflow) is only fatal when the input
+  // was opened with closeOnError (the default). With closeOnError false the
+  // chunk is still delivered and the status is reported alongside it, so the
+  // JS side can surface it as 'pa-status' without destroying the stream.
+  bool hasStatus = c->mPaContext->getErrStr(errStr, /*isInput*/true);
+  if (hasStatus && c->mPaContext->closeOnError(/*isInput*/true)) {
     c->status = napi_create_string_utf8(env, errStr.c_str(), NAPI_AUTO_LENGTH, &err);
     REJECT_STATUS;
     c->status = napi_set_named_property(env, result, "err", err);
@@ -211,6 +216,12 @@ void readComplete(napi_env env, napi_status asyncStatus, void* data) {
     REJECT_STATUS;
     c->status = napi_set_named_property(env, result, "finished", finished);
     REJECT_STATUS;
+    if (hasStatus) {
+      c->status = napi_create_string_utf8(env, errStr.c_str(), NAPI_AUTO_LENGTH, &err);
+      REJECT_STATUS;
+      c->status = napi_set_named_property(env, result, "status", err);
+      REJECT_STATUS;
+    }
   }
 
   napi_status status;

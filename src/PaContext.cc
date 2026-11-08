@@ -182,6 +182,11 @@ void PaContext::checkStatus(uint32_t statusFlags) {
   }
 }
 
+bool PaContext::closeOnError(bool isInput) const {
+  const std::shared_ptr<AudioOptions>& options = isInput ? mInOptions : mOutOptions;
+  return options ? options->closeOnError() : true;
+}
+
 bool PaContext::getErrStr(std::string& errStr, bool isInput) {
   std::lock_guard<std::mutex> lk(m);
   errStr = mErrStr;
